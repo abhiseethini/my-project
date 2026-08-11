@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard — Hackathon Template</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="../css/dashboard.css">
+</head>
+<body>
+  <nav class="navbar">
+    <div class="container nav-content">
+      <a href="index.html" class="logo">Hackathon</a>
+      <div class="nav-links">
+        <span id="user-greeting" class="user-greeting"></span>
+        <button id="logout-btn" class="btn btn-outline btn-sm">Log Out</button>
+      </div>
+    </div>
+  </nav>
+
+  <main class="dashboard-main">
+    <div class="container">
+      <header class="dashboard-header">
+        <h1>Dashboard</h1>
+        <p id="welcome-message">Loading your workspace…</p>
+      </header>
+
+      <div class="dashboard-grid">
+        <div class="dashboard-card">
+          <h2>Profile</h2>
+          <dl class="profile-list">
+            <dt>Name</dt>
+            <dd id="profile-name">—</dd>
+            <dt>Email</dt>
+            <dd id="profile-email">—</dd>
+            <dt>User ID</dt>
+            <dd id="profile-uid" class="mono">—</dd>
+          </dl>
+        </div>
+
+        <div class="dashboard-card">
+          <h2>Quick Actions</h2>
+          <div class="action-list">
+            <a href="#" class="action-item" id="action-placeholder">
+              <span class="action-icon">🚀</span>
+              <span>Start building your feature here</span>
+            </a>
+          </div>
+        </div>
+
+        <div class="dashboard-card dashboard-card-wide">
+          <h2>Activity</h2>
+          <p class="text-muted" id="activity-placeholder">No activity yet. This is where your hackathon data will appear.</p>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script type="module" src="../js/dashboard.js"></script>
+</body>
+</html>
