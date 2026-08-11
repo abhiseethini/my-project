@@ -10,6 +10,40 @@ const USERS_COLLECTION = 'users';
 const DEFAULT_ROLE = 'user';
 
 /**
+ * Ensures a Firestore profile exists for an Auth user (e.g. Google sign-in).
+ * Skips the write if users/{uid} already exists.
+ *
+ * @param {import('firebase/auth').User} authUser — Firebase Auth user object
+ */
+export async function ensureUserProfile(authUser) {
+  const userRef = doc(db, USERS_COLLECTION, authUser.uid);
+
+  try {
+    const snapshot = await getDoc(userRef);
+
+    if (snapshot.exists()) {
+      console.log('Firestore profile already exists at users/' + authUser.uid);
+      return;
+    }
+
+    await setDoc(
+      userRef,
+      {
+        name: authUser.displayName || '',
+        email: authUser.email || '',
+        role: DEFAULT_ROLE,
+        createdAt: serverTimestamp(),
+      },
+      { merge: true }
+    );
+    console.log('Firestore profile created at users/' + authUser.uid);
+  } catch (err) {
+    console.error('Firestore ensureUserProfile failed:', err.code, err.message, err);
+    throw err;
+  }
+}
+
+/**
  * Creates a Firestore profile for a newly registered Auth user.
  * Role is always set server-side; never taken from client input.
  *

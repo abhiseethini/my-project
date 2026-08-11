@@ -3,19 +3,25 @@
  */
 
 import { auth } from './firebase.js';
-import { createUserProfile } from './userProfile.js';
+import { createUserProfile, ensureUserProfile } from './userProfile.js';
 import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   updateProfile,
   signOut,
   onAuthStateChanged,
+  GoogleAuthProvider,
+  signInWithPopup,
 } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 
 const errorEl = document.getElementById('auth-error');
 const successEl = document.getElementById('auth-success');
 const loginForm = document.getElementById('login-form');
 const signupForm = document.getElementById('signup-form');
+const googleSignInBtn = document.getElementById('google-signin-btn');
+
+/** Prevents onAuthStateChanged from redirecting before Firestore writes finish. */
+let authFlowInProgress = false;
 
 // ── Exported helpers (used by dashboard and other protected pages) ─────────
 
@@ -84,6 +90,10 @@ function getAuthErrorMessage(code) {
     'auth/weak-password': 'Password must be at least 6 characters.',
     'auth/too-many-requests': 'Too many attempts. Please try again later.',
     'auth/network-request-failed': 'Network error. Check your connection and try again.',
+    'auth/popup-closed-by-user': 'Sign-in popup was closed. Please try again.',
+    'auth/popup-blocked': 'Sign-in popup was blocked by your browser. Allow popups and try again.',
+    'auth/cancelled-popup-request': 'Only one sign-in popup can be open at a time.',
+    'auth/account-exists-with-different-credential': 'An account already exists with this email using a different sign-in method.',
   };
   return messages[code] || 'Something went wrong. Please try again.';
 }
@@ -92,7 +102,7 @@ function getAuthErrorMessage(code) {
 
 if (loginForm) {
   onAuthStateChanged(auth, (user) => {
-    if (user) {
+    if (user && !authFlowInProgress) {
       window.location.href = 'dashboard.html';
     }
   });
@@ -135,6 +145,41 @@ if (loginForm) {
   });
 }
 
+// ── Google Sign-In ──────────────────────────────────────────────────────────
+
+if (googleSignInBtn) {
+  if (googleSignInBtn) googleSignInBtn.dataset.originalText = 'Continue with Google';
+
+  googleSignInBtn.addEventListener('click', async () => {
+    hideMessages();
+    authFlowInProgress = true;
+    setLoading(googleSignInBtn, true);
+
+    const provider = new GoogleAuthProvider();
+
+    try {
+      const result = await signInWithPopup(auth, provider);
+      const { user } = result;
+
+      await ensureUserProfile(user);
+
+      showSuccess('Signed in with Google! Redirecting…');
+      window.location.href = 'dashboard.html';
+    } catch (err) {
+      console.error('Google sign-in failed:', err.code, err.message, err);
+
+      if (err.code === 'permission-denied') {
+        showError('Signed in, but profile could not be saved. Check Firestore security rules.');
+      } else {
+        showError(getAuthErrorMessage(err.code));
+      }
+    } finally {
+      authFlowInProgress = false;
+      setLoading(googleSignInBtn, false);
+    }
+  });
+}
+
 // ── Signup ──────────────────────────────────────────────────────────────────
 
 if (signupForm) {
@@ -151,6 +196,7 @@ if (signupForm) {
     const password = signupForm.password.value;
 
     try {
+      authFlowInProgress = true;
       const credential = await createUserWithEmailAndPassword(auth, email, password);
       const { user } = credential;
 
@@ -174,6 +220,7 @@ if (signupForm) {
         showError('Could not create your profile. Please try again.');
       }
     } finally {
+      authFlowInProgress = false;
       setLoading(signupBtn, false);
     }
   });
