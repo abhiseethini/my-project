@@ -1,0 +1,15 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /users/{userId} {
+      // Authenticated users can read their own user profile (enables role checking)
+      allow read: if request.auth != null && request.auth.uid == userId;
+
+      // Users can create their own profile during signup
+      allow create: if request.auth != null && request.auth.uid == userId;
+
+      // Users can update their own profile, preserving their assigned role
+      allow update: if request.auth != null && request.auth.uid == userId && request.resource.data.role == resource.data.role;
+    }
+  }
+}

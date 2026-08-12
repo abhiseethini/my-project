@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin — Hackathon Template</title>
+  <link rel="stylesheet" href="../css/style.css">
+  <link rel="stylesheet" href="../css/dashboard.css">
+</head>
+<body>
+  <nav class="navbar navbar-admin">
+    <div class="container nav-content">
+      <a href="index.html" class="logo">Hackathon <span class="badge">Admin</span></a>
+      <div class="nav-links">
+        <a href="dashboard.html" class="btn btn-outline btn-sm">Dashboard</a>
+        <button id="logout-btn" class="btn btn-outline btn-sm">Log Out</button>
+      </div>
+    </div>
+  </nav>
+
+  <main class="dashboard-main">
+    <div class="container">
+      <header class="dashboard-header">
+        <h1>Admin Panel</h1>
+        <p>Manage users and application settings</p>
+      </header>
+
+      <div id="admin-denied" class="alert alert-error" hidden>
+        Access denied. Admin privileges required.
+      </div>
+
+      <div id="admin-content" hidden>
+        <div class="dashboard-grid">
+          <div class="dashboard-card">
+            <h2>Stats</h2>
+            <dl class="profile-list">
+              <dt>Total Users</dt>
+              <dd id="stat-users">—</dd>
+              <dt>Admins</dt>
+              <dd id="stat-admins">—</dd>
+            </dl>
+          </div>
+
+          <div class="dashboard-card dashboard-card-wide">
+            <h2>Users</h2>
+            <div class="table-wrapper">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Name</th>
+                    <th>Email</th>
+                    <th>Role</th>
+                    <th>Joined</th>
+                  </tr>
+                </thead>
+                <tbody id="users-table-body">
+                  <tr><td colspan="4" class="text-muted">Loading users…</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+  <script type="module" src="../js/admin.js"></script>
+</body>
+</html>
