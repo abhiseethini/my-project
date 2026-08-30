@@ -642,24 +642,23 @@ async function handleReportSubmit(e) {
       if (!existing) throw new Error('Report not found.');
       await updateItem(existing, data, imageFile, currentUser.uid);
       showToast('Report updated successfully!', 'success');
+      closeModal('report-modal');
+      document.getElementById('my-reports-section')?.scrollIntoView({ behavior: 'smooth' });
     } else {
       const result = await createItem(currentUser.uid, data, imageFile);
       if (result.imageWarning) {
         showToast('Report saved, but the image could not be uploaded. Check Storage rules.', 'error');
-      } else {
-        showToast(`${reportType === 'lost' ? 'Lost' : 'Found'} item reported successfully!`, 'success');
       }
 
       const saved = result.item;
       const matches = findMatchesForItem(saved, [...allItems, saved]);
       await notifyMatchesAfterSave(saved, matches);
-      if (matches.length) {
-        showToast(`${matches.length} possible match${matches.length === 1 ? '' : 'es'} found.`, 'info');
-      }
-    }
 
-    closeModal('report-modal');
-    document.getElementById('my-reports-section')?.scrollIntoView({ behavior: 'smooth' });
+      // Redirect to the standalone report details page
+      closeModal('report-modal');
+      window.location.href = `report.html?id=${result.id}&type=${saved.type}&new=1`;
+      return;
+    }
   } catch (err) {
     console.error('Report submit error:', err.code, err.message, err);
     const message = submitErrorMessage(err);
