@@ -299,6 +299,11 @@
   text-decoration: none;
 }
 
+.app-body .btn[hidden],
+.app-body .btn.is-hidden {
+  display: none !important;
+}
+
 .app-body .btn-lg { padding: 0.85rem 1.75rem; font-size: 0.95rem; }
 .app-body .btn-sm { padding: 0.4rem 0.85rem; font-size: 0.8rem; }
 .app-body .btn-block { width: 100%; }
@@ -483,6 +488,15 @@
   background: var(--dash-surface);
   color: var(--dash-text);
   transition: var(--dash-transition);
+  appearance: auto;
+  -webkit-appearance: menulist;
+}
+
+.form-group select option,
+.filter-grid select option {
+  background: #ffffff;
+  color: #0f172a;
+  padding: 0.5rem;
 }
 
 .filter-grid select:focus,
@@ -546,6 +560,13 @@
   background: var(--dash-primary-light);
   transform: translateY(-3px);
   box-shadow: var(--dash-shadow);
+}
+
+.category-chip.active {
+  border-color: var(--dash-primary);
+  background: var(--dash-primary-light);
+  color: var(--dash-primary-dark);
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
 }
 
 .cat-icon { font-size: 1.5rem; }
@@ -645,6 +666,13 @@
   line-height: 1.5;
   flex: 1;
   margin-bottom: 0.75rem;
+}
+
+.match-hint {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--dash-primary);
+  margin: 0 0 0.4rem;
 }
 
 .item-footer {

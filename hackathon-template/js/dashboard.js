@@ -22,6 +22,7 @@ import {
   subscribeToNotifications,
   markNotificationRead,
   notifyContactRequest,
+  notifyPossibleMatch,
 } from './notifications.js';
 import {
   showToast,
@@ -41,6 +42,7 @@ let currentUser = null;
 let allItems = [];
 let myReportsTab = 'all';
 let reportType = 'lost';
+const TOTAL_STEPS = 3;
 let formStep = 1;
 let imageFile = null;
 let unsubscribeItems = null;
@@ -53,20 +55,28 @@ const PLACEHOLDER_IMG = 'data:image/svg+xml,' + encodeURIComponent(
 requireAuth(async (user) => {
   currentUser = user;
   initUserUI(user);
-  const profile = await getUserProfile(user.uid);
-  if (profile?.name) {
-    document.getElementById('welcome-name').textContent = profile.name;
-    document.getElementById('profile-name-short').textContent = profile.name.split(' ')[0];
-    document.getElementById('profile-dropdown-name').textContent = profile.name;
-    document.getElementById('profile-avatar').textContent = profile.name.charAt(0).toUpperCase();
+
+  try {
+    const profile = await getUserProfile(user.uid);
+    if (profile?.name) {
+      document.getElementById('welcome-name').textContent = profile.name;
+      document.getElementById('profile-name-short').textContent = profile.name.split(' ')[0];
+      document.getElementById('profile-dropdown-name').textContent = profile.name;
+      document.getElementById('profile-avatar').textContent = profile.name.charAt(0).toUpperCase();
+    }
+    document.getElementById('report-contact-name').value = profile?.name || user.displayName || '';
+  } catch (err) {
+    console.error('Could not load user profile:', err.code, err.message, err);
+    document.getElementById('report-contact-name').value = user.displayName || '';
   }
+
   document.getElementById('profile-dropdown-email').textContent = user.email || '—';
-  document.getElementById('report-contact-name').value = profile?.name || user.displayName || '';
   document.getElementById('report-contact-email').value = user.email || '';
 
   showLoadingStates();
-  unsubscribeItems = subscribeToItems(onItemsUpdate, () => {
-    showToast('Could not load items. Check Firestore rules.', 'error');
+  unsubscribeItems = subscribeToItems(onItemsUpdate, (err) => {
+    showToast('Could not load reports. Publish the latest Firestore rules.', 'error');
+    console.error('Reports load failed:', err);
   });
   unsubscribeNotifs = subscribeToNotifications(user.uid, renderNotifications);
 });
@@ -116,34 +126,64 @@ function animateValue(id, target) {
   requestAnimationFrame(tick);
 }
 
-function renderCategories() {
-  const grid = document.getElementById('categories-grid');
-  grid.innerHTML = CATEGORIES.map(
-    (c) => `<button type="button" class="category-chip" data-category="${c.id}">
-      <span class="cat-icon">${c.icon}</span><span>${c.label}</span>
-    </button>`
-  ).join('');
-  grid.querySelectorAll('.category-chip').forEach((btn) => {
-    btn.addEventListener('click', () => {
-      document.getElementById('filter-category').value = btn.dataset.category;
-      document.getElementById('global-search').value = '';
-      document.getElementById('filter-panel').hidden = false;
-      runSearch();
-      document.getElementById('search-section').scrollIntoView({ behavior: 'smooth' });
-    });
-  });
-
+function populateCategorySelects() {
   const catSelect = document.getElementById('report-category');
   const filterCat = document.getElementById('filter-category');
-  catSelect.innerHTML = CATEGORIES.map((c) => `<option value="${c.id}">${c.label}</option>`).join('');
-  filterCat.innerHTML = '<option value="all">All Categories</option>' +
-    CATEGORIES.map((c) => `<option value="${c.id}">${c.label}</option>`).join('');
+  if (!catSelect || !filterCat) return;
+
+  const currentFilter = filterCat.value;
+  const currentReport = catSelect.value;
+
+  catSelect.innerHTML =
+    '<option value="" disabled>Select a category</option>' +
+    CATEGORIES.map((c) => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.label)}</option>`).join('');
+
+  filterCat.innerHTML =
+    '<option value="all">All Categories</option>' +
+    CATEGORIES.map((c) => `<option value="${escapeHtml(c.id)}">${escapeHtml(c.label)}</option>`).join('');
+
+  if (currentFilter) filterCat.value = currentFilter;
+  if (currentReport) catSelect.value = currentReport;
+}
+
+function renderCategoryGrid() {
+  const grid = document.getElementById('categories-grid');
+  if (!grid) return;
+
+  grid.innerHTML = CATEGORIES.map(
+    (c) => `<button type="button" class="category-chip" data-category="${escapeHtml(c.id)}">
+      <span class="cat-icon">${c.icon}</span><span>${escapeHtml(c.label)}</span>
+    </button>`
+  ).join('');
+}
+
+function renderCategories() {
+  renderCategoryGrid();
+  populateCategorySelects();
+}
+
+function handleCategoryChipClick(categoryId) {
+  const filterCat = document.getElementById('filter-category');
+  const filterPanel = document.getElementById('filter-panel');
+  const searchInput = document.getElementById('global-search');
+
+  filterCat.value = categoryId;
+  searchInput.value = '';
+  filterPanel.hidden = false;
+
+  document.querySelectorAll('.category-chip').forEach((chip) => {
+    chip.classList.toggle('active', chip.dataset.category === categoryId);
+  });
+
+  runSearch();
+  document.getElementById('search-section').scrollIntoView({ behavior: 'smooth' });
 }
 
 function renderItemCard(item, options = {}) {
-  const { showActions = false, isOwner = false } = options;
+  const { showActions = false, isOwner = false, searchHint = '' } = options;
   const badgeClass = item.type === 'lost' ? 'badge-lost' : 'badge-found';
   const statusClass = item.status === 'resolved' ? 'status-resolved' : 'status-active';
+  const locationPrefix = item.type === 'lost' ? 'Lost at' : 'Found at';
 
   return `
     <article class="item-card reveal" data-id="${item.id}">
@@ -157,14 +197,15 @@ function renderItemCard(item, options = {}) {
           <span class="item-status ${statusClass}">${item.status}</span>
         </div>
         <h3 class="item-title">${escapeHtml(item.itemName)}</h3>
+        ${searchHint ? `<p class="match-hint">${escapeHtml(searchHint)}</p>` : ''}
         <p class="item-desc">${escapeHtml((item.description || '').slice(0, 90))}${(item.description || '').length > 90 ? '…' : ''}</p>
         <div class="item-footer">
-          <span class="item-loc">📍 ${escapeHtml(item.location || '—')}</span>
+          <span class="item-loc">📍 ${locationPrefix}: ${escapeHtml(item.location || '—')}</span>
           <span class="item-date">${formatDate(item.dateTime || item.createdAt)}</span>
         </div>
         <div class="item-actions">
           <button type="button" class="btn btn-outline btn-sm view-btn" data-id="${item.id}">View Details</button>
-          ${!isOwner && item.status === 'active' ? `<button type="button" class="btn btn-primary btn-sm contact-btn" data-id="${item.id}">Contact Reporter</button>` : ''}
+          ${!isOwner && item.status === 'active' ? `<button type="button" class="btn btn-primary btn-sm contact-btn" data-id="${item.id}">${item.type === 'lost' ? 'I Found This' : 'Contact Reporter'}</button>` : ''}
           ${showActions && isOwner ? `
             <button type="button" class="btn btn-ghost btn-sm edit-btn" data-id="${item.id}">Edit</button>
             ${item.status === 'active' ? `<button type="button" class="btn btn-ghost btn-sm resolve-btn" data-id="${item.id}">Mark Resolved</button>` : ''}
@@ -260,6 +301,11 @@ function getFilters() {
   };
 }
 
+function searchHintFor(item) {
+  if (item.type === 'lost') return 'Owner is looking for this item';
+  return 'Possible match for a lost item';
+}
+
 function runSearch() {
   const query = document.getElementById('global-search').value.trim();
   const filters = getFilters();
@@ -274,11 +320,12 @@ function runSearch() {
   const grid = document.getElementById('search-results-grid');
 
   if (results.length === 0) {
-    grid.innerHTML = emptyState({ icon: '🔍', title: 'No items found', message: 'Try different keywords or adjust your filters.' });
+    grid.innerHTML = emptyState({ icon: '🔍', title: 'No items found', message: 'Try different keywords. Search looks through both lost and found reports.' });
   } else {
     grid.innerHTML = results.map((i) => renderItemCard(i, {
       showActions: i.reporterUid === currentUser.uid,
       isOwner: i.reporterUid === currentUser.uid,
+      searchHint: query ? searchHintFor(i) : '',
     })).join('');
     bindCardActions(grid);
   }
@@ -401,16 +448,18 @@ function openReportModal(type) {
   reportType = type;
   formStep = 1;
   imageFile = null;
+  populateCategorySelects();
   document.getElementById('edit-item-id').value = '';
   document.getElementById('report-type').value = type;
   document.getElementById('report-form').reset();
+  document.getElementById('report-category').value = '';
   document.getElementById('image-preview').hidden = true;
   document.getElementById('report-modal-title').textContent = type === 'lost' ? 'Report Lost Item' : 'Report Found Item';
   document.getElementById('report-type-label').textContent = type === 'lost' ? 'Lost Report' : 'Found Report';
   document.getElementById('report-location-label').textContent = type === 'lost' ? 'Last Seen Location *' : 'Found Location *';
   document.getElementById('report-contact-name').value = currentUser.displayName || '';
   document.getElementById('report-contact-email').value = currentUser.email || '';
-  updateFormStep();
+  setFormStep(1);
   openModal('report-modal');
 }
 
@@ -420,6 +469,7 @@ function openEditReport(itemId) {
   reportType = item.type;
   formStep = 1;
   imageFile = null;
+  populateCategorySelects();
   document.getElementById('edit-item-id').value = itemId;
   document.getElementById('report-type').value = item.type;
   document.getElementById('report-item-name').value = item.itemName;
@@ -434,8 +484,16 @@ function openEditReport(itemId) {
   document.getElementById('report-contact-phone').value = item.reporterPhone || '';
   document.getElementById('report-contact-method').value = item.contactMethod || 'email';
   if (item.dateTime) {
-    const d = item.dateTime.toDate ? item.dateTime.toDate() : new Date(item.dateTime);
-    document.getElementById('report-datetime').value = d.toISOString().slice(0, 16);
+    const raw = item.dateTime;
+    if (typeof raw === 'string' && raw.length >= 16) {
+      document.getElementById('report-datetime').value = raw.slice(0, 16);
+    } else {
+      const d = raw.toDate ? raw.toDate() : new Date(raw);
+      if (!Number.isNaN(d.getTime())) {
+        const local = new Date(d.getTime() - d.getTimezoneOffset() * 60000);
+        document.getElementById('report-datetime').value = local.toISOString().slice(0, 16);
+      }
+    }
   }
   if (item.imageUrl) {
     const preview = document.getElementById('image-preview');
@@ -443,19 +501,47 @@ function openEditReport(itemId) {
     preview.hidden = false;
   }
   document.getElementById('report-modal-title').textContent = 'Edit Report';
-  updateFormStep();
+  setFormStep(1);
   openModal('report-modal');
 }
 
+function setFormStep(step) {
+  formStep = Math.min(TOTAL_STEPS, Math.max(1, step));
+  updateFormStep();
+}
+
 function updateFormStep() {
+  formStep = Math.min(TOTAL_STEPS, Math.max(1, formStep));
+
   document.querySelectorAll('.form-step').forEach((s) => {
     s.classList.toggle('active', parseInt(s.dataset.step, 10) === formStep);
   });
-  document.getElementById('form-progress-fill').style.width = `${(formStep / 3) * 100}%`;
-  document.getElementById('form-progress-text').textContent = `Step ${formStep} of 3`;
-  document.getElementById('form-prev-btn').hidden = formStep === 1;
-  document.getElementById('form-next-btn').hidden = formStep === 3;
-  document.getElementById('form-submit-btn').hidden = formStep !== 3;
+
+  const progress = document.getElementById('form-progress-fill');
+  const progressText = document.getElementById('form-progress-text');
+  const prevBtn = document.getElementById('form-prev-btn');
+  const nextBtn = document.getElementById('form-next-btn');
+  const submitBtn = document.getElementById('form-submit-btn');
+
+  if (progress) progress.style.width = `${(formStep / TOTAL_STEPS) * 100}%`;
+  if (progressText) progressText.textContent = `Step ${formStep} of ${TOTAL_STEPS}`;
+
+  const onLast = formStep >= TOTAL_STEPS;
+  const onFirst = formStep <= 1;
+
+  if (prevBtn) {
+    prevBtn.hidden = onFirst;
+    prevBtn.classList.toggle('is-hidden', onFirst);
+  }
+  if (nextBtn) {
+    nextBtn.hidden = onLast;
+    nextBtn.classList.toggle('is-hidden', onLast);
+    nextBtn.disabled = onLast;
+  }
+  if (submitBtn) {
+    submitBtn.hidden = !onLast;
+    submitBtn.classList.toggle('is-hidden', !onLast);
+  }
 }
 
 function validateStep(step) {
@@ -496,7 +582,24 @@ function collectFormData() {
 
 async function handleReportSubmit(e) {
   e.preventDefault();
-  if (!validateStep(3)) return;
+  e.stopPropagation();
+
+  if (formStep < TOTAL_STEPS) {
+    if (!validateStep(formStep)) return;
+    setFormStep(formStep + 1);
+    return;
+  }
+
+  if (!validateStep(1) || !validateStep(2) || !validateStep(3)) {
+    if (!validateStep(1)) setFormStep(1);
+    else if (!validateStep(2)) setFormStep(2);
+    return;
+  }
+
+  if (!currentUser) {
+    showToast('Please sign in again to submit a report.', 'error');
+    return;
+  }
 
   const btn = document.getElementById('form-submit-btn');
   setBtnLoading(btn, true);
@@ -505,39 +608,86 @@ async function handleReportSubmit(e) {
 
   try {
     if (editId) {
-      await updateItem(editId, data, imageFile, currentUser.uid);
+      const existing = allItems.find((i) => i.id === editId);
+      if (!existing) throw new Error('Report not found.');
+      await updateItem(existing, data, imageFile, currentUser.uid);
       showToast('Report updated successfully!', 'success');
     } else {
-      await createItem(currentUser.uid, data, imageFile);
-      showToast(`${reportType === 'lost' ? 'Lost' : 'Found'} item reported successfully!`, 'success');
+      const result = await createItem(currentUser.uid, data, imageFile);
+      if (result.imageWarning) {
+        showToast('Report saved, but the image could not be uploaded. Check Storage rules.', 'error');
+      } else {
+        showToast(`${reportType === 'lost' ? 'Lost' : 'Found'} item reported successfully!`, 'success');
+      }
+
+      const saved = result.item;
+      const matches = findMatchesForItem(saved, [...allItems, saved]);
+      await notifyMatchesAfterSave(saved, matches);
+      if (matches.length) {
+        showToast(`${matches.length} possible match${matches.length === 1 ? '' : 'es'} found.`, 'info');
+      }
     }
+
     closeModal('report-modal');
+    document.getElementById('my-reports-section')?.scrollIntoView({ behavior: 'smooth' });
   } catch (err) {
-    console.error('Report submit error:', err);
-    showToast(err.code === 'permission-denied' ? 'Permission denied. Check Firestore/Storage rules.' : 'Failed to submit report.', 'error');
+    console.error('Report submit error:', err.code, err.message, err);
+    const message = submitErrorMessage(err);
+    showToast(message, 'error');
   } finally {
     setBtnLoading(btn, false, 'Submit Report');
   }
 }
 
+function submitErrorMessage(err) {
+  if (err.code === 'permission-denied') {
+    return 'Permission denied. Publish the latest Firestore (and Storage) rules, then try again.';
+  }
+  if (err.code === 'unavailable') {
+    return 'Could not reach Firebase. Check your connection and try again.';
+  }
+  return err.message || 'Failed to submit report.';
+}
+
+async function notifyMatchesAfterSave(saved, matches) {
+  for (const match of matches.slice(0, 5)) {
+    try {
+      const lost = saved.type === 'lost' ? saved : match.item;
+      const found = saved.type === 'found' ? saved : match.item;
+      const otherUid = match.item.reporterUid || match.item.userId;
+      if (otherUid && otherUid !== currentUser.uid) {
+        await notifyPossibleMatch(lost, found, otherUid, currentUser.uid);
+      }
+    } catch (err) {
+      console.error('Match notification failed:', err.code, err.message, err);
+    }
+  }
+}
+
 async function handleResolve(itemId) {
+  const item = allItems.find((i) => i.id === itemId);
+  if (!item) return;
   const ok = await confirmAction({ title: 'Mark as Resolved?', message: 'This item will be moved to resolved/success stories.', confirmText: 'Mark Resolved' });
   if (!ok) return;
   try {
-    await markItemResolved(itemId);
+    await markItemResolved(item);
     showToast('Item marked as resolved!', 'success');
   } catch (err) {
+    console.error('Resolve failed:', err);
     showToast('Failed to update item.', 'error');
   }
 }
 
 async function handleDelete(itemId) {
+  const item = allItems.find((i) => i.id === itemId);
+  if (!item) return;
   const ok = await confirmAction({ title: 'Delete Report?', message: 'This action cannot be undone.', confirmText: 'Delete', danger: true });
   if (!ok) return;
   try {
-    await deleteItem(itemId);
+    await deleteItem(item);
     showToast('Report deleted.', 'success');
   } catch (err) {
+    console.error('Delete failed:', err);
     showToast('Failed to delete report.', 'error');
   }
 }
@@ -572,14 +722,37 @@ document.getElementById('clear-filters-btn').addEventListener('click', () => {
   document.getElementById('filter-status').value = 'all';
   document.getElementById('filter-location').value = '';
   document.getElementById('filter-date').value = '';
+  document.querySelectorAll('.category-chip').forEach((chip) => chip.classList.remove('active'));
   runSearch();
 });
-document.getElementById('form-next-btn').addEventListener('click', () => {
-  if (!validateStep(formStep)) return;
-  formStep++;
-  updateFormStep();
+
+document.getElementById('categories-grid').addEventListener('click', (e) => {
+  const chip = e.target.closest('.category-chip');
+  if (!chip) return;
+  handleCategoryChipClick(chip.dataset.category);
 });
-document.getElementById('form-prev-btn').addEventListener('click', () => { formStep--; updateFormStep(); });
+
+document.getElementById('filter-category').addEventListener('change', () => {
+  const value = document.getElementById('filter-category').value;
+  document.querySelectorAll('.category-chip').forEach((chip) => {
+    chip.classList.toggle('active', value !== 'all' && chip.dataset.category === value);
+  });
+  runSearch();
+});
+document.getElementById('form-next-btn').addEventListener('click', (e) => {
+  e.preventDefault();
+  e.stopPropagation();
+  if (formStep >= TOTAL_STEPS) {
+    setFormStep(TOTAL_STEPS);
+    return;
+  }
+  if (!validateStep(formStep)) return;
+  setFormStep(formStep + 1);
+});
+document.getElementById('form-prev-btn').addEventListener('click', (e) => {
+  e.preventDefault();
+  setFormStep(formStep - 1);
+});
 document.getElementById('report-form').addEventListener('submit', handleReportSubmit);
 document.getElementById('contact-form').addEventListener('submit', handleContactSubmit);
 
@@ -642,3 +815,5 @@ document.addEventListener('click', (e) => {
 
 initModalClosers();
 initScrollReveal();
+renderCategoryGrid();
+populateCategorySelects();

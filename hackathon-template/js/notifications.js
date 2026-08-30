@@ -77,13 +77,13 @@ export async function notifyContactRequest({ item, fromUser, message }) {
   });
 }
 
-export async function notifyPossibleMatch(lostItem, foundItem, toUid) {
+export async function notifyPossibleMatch(lostItem, foundItem, toUid, fromUid = 'system') {
   await createNotification({
     toUid,
-    fromUid: 'system',
+    fromUid,
     fromName: 'Campus Lost & Found',
     type: 'match',
-    message: `Possible match found: "${foundItem.itemName}" may match your lost "${lostItem.itemName}"`,
+    message: `Possible match found: "${foundItem.itemName}" may match lost item "${lostItem.itemName}"`,
     itemId: lostItem.id,
     itemName: lostItem.itemName,
   });
