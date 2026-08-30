@@ -3,58 +3,352 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Dashboard — Hackathon Template</title>
+  <title>Dashboard — Campus Lost & Found</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../css/style.css">
   <link rel="stylesheet" href="../css/dashboard.css">
 </head>
-<body>
-  <nav class="navbar">
-    <div class="container nav-content">
-      <a href="index.html" class="logo">Hackathon</a>
-      <div class="nav-links">
-        <span id="user-greeting" class="user-greeting"></span>
-        <button id="logout-btn" class="btn btn-outline btn-sm">Log Out</button>
-      </div>v                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         v
-    </div>
-  </nav>
+<body class="app-body">
 
-  <main class="dashboard-main">
-    <div class="container">
-      <header class="dashboard-header">
-        <h1>Dashboard</h1>
-        <p id="welcome-message">Loading your workspace…</p>
-      </header>
+  <!-- Top Navbar -->
+  <header class="app-header">
+    <div class="header-inner">
+      <a href="index.html" class="brand">
+        <span class="brand-icon" aria-hidden="true">🏫</span>
+        <span class="brand-text">Campus <strong>Lost & Found</strong></span>
+      </a>
 
-      <div class="dashboard-grid">
-        <div class="dashboard-card">
-          <h2>Profile</h2>
-          <dl class="profile-list">
-            <dt>Name</dt>
-            <dd id="profile-name">—</dd>
-            <dt>Email</dt>
-            <dd id="profile-email">—</dd>
-            <dt>User ID</dt>
-            <dd id="profile-uid" class="mono">—</dd>
-          </dl>
-        </div>
+      <button type="button" class="mobile-menu-btn" id="mobile-menu-btn" aria-label="Open menu">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+      </button>
 
-        <div class="dashboard-card">
-          <h2>Quick Actions</h2>
-          <div class="action-list">
-            <a href="#" class="action-item" id="action-placeholder">
-              <span class="action-icon">🚀</span>
-              <span>Start building your feature here</span>
-            </a>
+      <nav class="header-nav" id="header-nav">
+        <button type="button" class="nav-link-btn" data-scroll="search-section">Search</button>
+        <button type="button" class="nav-link-btn" data-scroll="recent-section">Browse</button>
+        <button type="button" class="nav-link-btn" data-scroll="my-reports-section">My Reports</button>
+      </nav>
+
+      <div class="header-actions">
+        <button type="button" class="icon-btn" id="search-toggle-btn" aria-label="Search">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        </button>
+        <div class="notif-wrap">
+          <button type="button" class="icon-btn" id="notif-btn" aria-label="Notifications">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+            <span class="notif-badge" id="notif-badge" hidden>0</span>
+          </button>
+          <div class="notif-dropdown" id="notif-dropdown" hidden>
+            <div class="notif-header">Notifications</div>
+            <div id="notif-list" class="notif-list"></div>
           </div>
         </div>
-
-        <div class="dashboard-card dashboard-card-wide">
-          <h2>Activity</h2>
-          <p class="text-muted" id="activity-placeholder">No activity yet. This is where your hackathon data will appear.</p>
+        <div class="profile-wrap">
+          <button type="button" class="profile-btn" id="profile-btn" aria-haspopup="true">
+            <span class="profile-avatar" id="profile-avatar">U</span>
+            <span class="profile-name" id="profile-name-short">User</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+          </button>
+          <div class="profile-dropdown" id="profile-dropdown" hidden>
+            <p class="profile-dropdown-name" id="profile-dropdown-name">—</p>
+            <p class="profile-dropdown-email" id="profile-dropdown-email">—</p>
+            <hr>
+            <button type="button" class="dropdown-item" data-scroll="my-reports-section">My Reports</button>
+            <button type="button" class="dropdown-item" id="logout-btn">Log Out</button>
+          </div>
         </div>
       </div>
     </div>
+  </header>
+
+  <main class="app-main">
+    <!-- Hero -->
+    <section class="hero-section">
+      <div class="hero-content reveal">
+        <p class="hero-eyebrow">Welcome back, <span id="welcome-name">there</span></p>
+        <h1>Lost something? Found something?<br>Let's reconnect items with their owners.</h1>
+        <p class="hero-desc">Report, search, and match campus lost & found items securely.</p>
+        <div class="hero-actions">
+          <button type="button" class="btn btn-lost btn-lg" id="btn-report-lost">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
+            Report Lost Item
+          </button>
+          <button type="button" class="btn btn-found btn-lg" id="btn-report-found">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><path d="M22 4 12 14.01l-3-3"/></svg>
+            Report Found Item
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Stats -->
+    <section class="stats-section">
+      <div class="stats-grid">
+        <article class="stat-card reveal" data-stat="lost">
+          <div class="stat-icon stat-icon-lost">📋</div>
+          <div><span class="stat-value" id="stat-lost">—</span><span class="stat-label">Total Lost Items</span></div>
+        </article>
+        <article class="stat-card reveal" data-stat="found">
+          <div class="stat-icon stat-icon-found">🔍</div>
+          <div><span class="stat-value" id="stat-found">—</span><span class="stat-label">Total Found Items</span></div>
+        </article>
+        <article class="stat-card reveal" data-stat="returned">
+          <div class="stat-icon stat-icon-returned">✅</div>
+          <div><span class="stat-value" id="stat-returned">—</span><span class="stat-label">Successfully Returned</span></div>
+        </article>
+        <article class="stat-card reveal" data-stat="mine">
+          <div class="stat-icon stat-icon-mine">👤</div>
+          <div><span class="stat-value" id="stat-mine">—</span><span class="stat-label">My Reports</span></div>
+        </article>
+      </div>
+    </section>
+
+    <!-- Global Search -->
+    <section class="search-section" id="search-section">
+      <div class="section-head reveal">
+        <h2>Search Items</h2>
+        <p>Find lost or found items by name, category, location, or description.</p>
+      </div>
+      <div class="search-bar reveal">
+        <svg class="search-bar-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+        <input type="search" id="global-search" placeholder="Search item name, category, location, description…" autocomplete="off" aria-label="Search items">
+        <button type="button" class="btn btn-outline" id="filter-toggle-btn">Filters</button>
+        <button type="button" class="btn btn-primary" id="search-submit-btn">Search</button>
+      </div>
+      <div class="filter-panel" id="filter-panel" hidden>
+        <div class="filter-grid">
+          <div class="form-group">
+            <label for="filter-type">Type</label>
+            <select id="filter-type"><option value="all">All</option><option value="lost">Lost</option><option value="found">Found</option></select>
+          </div>
+          <div class="form-group">
+            <label for="filter-category">Category</label>
+            <select id="filter-category"><option value="all">All Categories</option></select>
+          </div>
+          <div class="form-group">
+            <label for="filter-status">Status</label>
+            <select id="filter-status"><option value="all">All</option><option value="active">Active</option><option value="resolved">Resolved</option></select>
+          </div>
+          <div class="form-group">
+            <label for="filter-location">Location</label>
+            <input type="text" id="filter-location" placeholder="e.g. Library">
+          </div>
+          <div class="form-group">
+            <label for="filter-date">From Date</label>
+            <input type="date" id="filter-date">
+          </div>
+        </div>
+        <button type="button" class="btn btn-ghost btn-sm" id="clear-filters-btn">Clear Filters</button>
+      </div>
+      <div id="search-results-wrap" hidden>
+        <h3 class="results-title">Search Results (<span id="search-count">0</span>)</h3>
+        <div id="search-results-grid" class="items-grid"></div>
+      </div>
+    </section>
+
+    <!-- Categories -->
+    <section class="categories-section">
+      <div class="section-head reveal">
+        <h2>Browse by Category</h2>
+      </div>
+      <div class="categories-grid" id="categories-grid"></div>
+    </section>
+
+    <!-- Possible Matches -->
+    <section class="matches-section" id="matches-section">
+      <div class="section-head reveal">
+        <h2>Possible Matches</h2>
+        <p>Automatically matched lost & found reports based on category, keywords, color, and location.</p>
+      </div>
+      <div id="matches-grid" class="matches-grid"></div>
+    </section>
+
+    <!-- Recent Items -->
+    <section class="recent-section" id="recent-section">
+      <div class="section-head reveal">
+        <h2>Recent Lost & Found Items</h2>
+      </div>
+      <div id="recent-grid" class="items-grid"></div>
+    </section>
+
+    <!-- Success Stories -->
+    <section class="success-section">
+      <div class="section-head reveal">
+        <h2>Recently Returned Items</h2>
+        <p>Celebrating successful reunions on campus.</p>
+      </div>
+      <div id="success-grid" class="success-grid"></div>
+    </section>
+
+    <!-- My Reports -->
+    <section class="my-reports-section" id="my-reports-section">
+      <div class="section-head reveal">
+        <h2>My Reports</h2>
+      </div>
+      <div class="tabs" role="tablist">
+        <button type="button" class="tab active" data-tab="all" role="tab">All</button>
+        <button type="button" class="tab" data-tab="lost" role="tab">Lost</button>
+        <button type="button" class="tab" data-tab="found" role="tab">Found</button>
+        <button type="button" class="tab" data-tab="resolved" role="tab">Resolved</button>
+      </div>
+      <div id="my-reports-grid" class="items-grid"></div>
+    </section>
   </main>
+
+  <!-- Report Modal (Lost / Found) -->
+  <div id="report-modal" class="app-modal" hidden aria-hidden="true">
+    <div class="modal-backdrop" data-close-modal="report-modal"></div>
+    <div class="modal-panel modal-panel-lg" role="dialog" aria-labelledby="report-modal-title">
+      <div class="modal-header">
+        <div>
+          <p class="modal-eyebrow" id="report-type-label">New Report</p>
+          <h2 id="report-modal-title">Report Item</h2>
+        </div>
+        <button type="button" class="modal-close-btn" data-close-modal="report-modal" aria-label="Close">&times;</button>
+      </div>
+      <div class="form-progress">
+        <div class="progress-bar"><div class="progress-fill" id="form-progress-fill"></div></div>
+        <span class="progress-text" id="form-progress-text">Step 1 of 3</span>
+      </div>
+      <form id="report-form" novalidate>
+        <input type="hidden" id="report-type" value="lost">
+        <input type="hidden" id="edit-item-id" value="">
+
+        <!-- Step 1: Item Details -->
+        <div class="form-step active" data-step="1">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="report-item-name">Item Name *</label>
+              <input type="text" id="report-item-name" required placeholder="e.g. Black Leather Wallet">
+            </div>
+            <div class="form-group">
+              <label for="report-category">Category *</label>
+              <select id="report-category" required></select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="report-description">Description * <span class="char-count"><span id="desc-count">0</span>/500</span></label>
+            <textarea id="report-description" rows="3" maxlength="500" required placeholder="Describe the item in detail…"></textarea>
+          </div>
+          <div class="form-group">
+            <label for="report-image">Item Image</label>
+            <div class="image-upload">
+              <input type="file" id="report-image" accept="image/*" hidden>
+              <button type="button" class="upload-btn" id="upload-trigger">Choose Image</button>
+              <img id="image-preview" class="image-preview" hidden alt="Preview">
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 2: Location & Details -->
+        <div class="form-step" data-step="2">
+          <div class="form-group">
+            <label for="report-location" id="report-location-label">Last Seen Location *</label>
+            <input type="text" id="report-location" required placeholder="e.g. Main Library, 2nd Floor">
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="report-datetime">Date & Time *</label>
+              <input type="datetime-local" id="report-datetime" required>
+            </div>
+            <div class="form-group">
+              <label for="report-color">Color</label>
+              <input type="text" id="report-color" placeholder="e.g. Black">
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="report-brand">Brand</label>
+              <input type="text" id="report-brand" placeholder="e.g. Apple, Nike">
+            </div>
+            <div class="form-group">
+              <label for="report-marks">Unique Identification Marks</label>
+              <input type="text" id="report-marks" placeholder="Scratches, stickers, engravings…">
+            </div>
+          </div>
+        </div>
+
+        <!-- Step 3: Contact -->
+        <div class="form-step" data-step="3">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="report-contact-name">Your Name *</label>
+              <input type="text" id="report-contact-name" required>
+            </div>
+            <div class="form-group">
+              <label for="report-contact-email">Email *</label>
+              <input type="email" id="report-contact-email" required>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="report-contact-phone">Phone</label>
+              <input type="tel" id="report-contact-phone" placeholder="+91 …">
+            </div>
+            <div class="form-group">
+              <label for="report-contact-method">Preferred Contact</label>
+              <select id="report-contact-method">
+                <option value="email">Email</option>
+                <option value="phone">Phone</option>
+                <option value="both">Both</option>
+              </select>
+            </div>
+          </div>
+          <p class="form-note">Contact details are kept private and only shared when someone requests to contact you.</p>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-ghost" id="form-prev-btn" hidden>Back</button>
+          <button type="button" class="btn btn-primary" id="form-next-btn">Next</button>
+          <button type="submit" class="btn btn-primary" id="form-submit-btn" hidden>Submit Report</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Item Details Modal -->
+  <div id="details-modal" class="app-modal" hidden aria-hidden="true">
+    <div class="modal-backdrop" data-close-modal="details-modal"></div>
+    <div class="modal-panel modal-panel-lg" role="dialog">
+      <button type="button" class="modal-close-btn" data-close-modal="details-modal" aria-label="Close">&times;</button>
+      <div id="details-content"></div>
+    </div>
+  </div>
+
+  <!-- Contact Modal -->
+  <div id="contact-modal" class="app-modal" hidden aria-hidden="true">
+    <div class="modal-backdrop" data-close-modal="contact-modal"></div>
+    <div class="modal-panel" role="dialog">
+      <div class="modal-header">
+        <h2>Contact Reporter</h2>
+        <button type="button" class="modal-close-btn" data-close-modal="contact-modal" aria-label="Close">&times;</button>
+      </div>
+      <p class="modal-sub">Send a secure contact request. The reporter's details will be shared based on their preferred contact method.</p>
+      <form id="contact-form">
+        <input type="hidden" id="contact-item-id">
+        <div class="form-group">
+          <label for="contact-message">Message</label>
+          <textarea id="contact-message" rows="3" placeholder="I believe I found/lost this item…"></textarea>
+        </div>
+        <div id="contact-reveal" class="contact-reveal" hidden></div>
+        <button type="submit" class="btn btn-primary btn-block">Send Contact Request</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- Confirm Modal -->
+  <div id="confirm-modal" class="app-modal" hidden aria-hidden="true">
+    <div class="modal-backdrop"></div>
+    <div class="modal-panel modal-panel-sm" role="dialog">
+      <h2 id="confirm-title">Confirm</h2>
+      <p id="confirm-message" class="modal-sub"></p>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-ghost" id="confirm-cancel-btn">Cancel</button>
+        <button type="button" class="btn btn-primary" id="confirm-action-btn">Confirm</button>
+      </div>
+    </div>
+  </div>
 
   <script type="module" src="../js/dashboard.js"></script>
 </body>
