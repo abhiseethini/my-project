@@ -235,7 +235,7 @@ function renderRecent() {
     document.getElementById('empty-report-lost')?.addEventListener('click', () => openReportModal('lost'));
     return;
   }
-  grid.innerHTML = items.map((i) => renderItemCard(i, { isOwner: i.reporterUid === currentUser.uid })).join('');
+  grid.innerHTML = items.map((i) => renderItemCard(i, { isOwner: i.reporterUid === currentUser?.uid })).join('');
   bindCardActions(grid);
   observeReveal(grid);
 }
@@ -248,7 +248,7 @@ function renderLostReports() {
     grid.innerHTML = emptyState({ icon: '📋', title: 'No lost reports yet', message: 'There are currently no active lost items.' });
     return;
   }
-  grid.innerHTML = items.map((i) => renderItemCard(i, { isOwner: i.reporterUid === currentUser.uid })).join('');
+  grid.innerHTML = items.map((i) => renderItemCard(i, { isOwner: i.reporterUid === currentUser?.uid })).join('');
   bindCardActions(grid);
   observeReveal(grid);
 }
@@ -261,7 +261,7 @@ function renderFoundReports() {
     grid.innerHTML = emptyState({ icon: '🔍', title: 'No found reports yet', message: 'There are currently no active found items.' });
     return;
   }
-  grid.innerHTML = items.map((i) => renderItemCard(i, { isOwner: i.reporterUid === currentUser.uid })).join('');
+  grid.innerHTML = items.map((i) => renderItemCard(i, { isOwner: i.reporterUid === currentUser?.uid })).join('');
   bindCardActions(grid);
   observeReveal(grid);
 }
@@ -352,8 +352,8 @@ function runSearch() {
     grid.innerHTML = emptyState({ icon: '🔍', title: 'No items found', message: 'Try different keywords. Search looks through both lost and found reports.' });
   } else {
     grid.innerHTML = results.map((i) => renderItemCard(i, {
-      showActions: i.reporterUid === currentUser.uid,
-      isOwner: i.reporterUid === currentUser.uid,
+      showActions: i.reporterUid === currentUser?.uid,
+      isOwner: i.reporterUid === currentUser?.uid,
       searchHint: query ? searchHintFor(i) : '',
     })).join('');
     bindCardActions(grid);
@@ -632,10 +632,11 @@ async function handleReportSubmit(e) {
 
   const btn = document.getElementById('form-submit-btn');
   setBtnLoading(btn, true);
-  const data = collectFormData();
-  const editId = document.getElementById('edit-item-id').value;
 
   try {
+    const data = collectFormData();
+    const editId = document.getElementById('edit-item-id').value;
+
     if (editId) {
       const existing = allItems.find((i) => i.id === editId);
       if (!existing) throw new Error('Report not found.');
