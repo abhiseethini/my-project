@@ -89,8 +89,9 @@ function initUserUI(user) {
 }
 
 function showLoadingStates() {
-  ['recent-grid', 'my-reports-grid', 'matches-grid'].forEach((id) => {
-    skeletonCards(3, document.getElementById(id));
+  ['recent-grid', 'lost-reports-grid', 'found-reports-grid', 'my-reports-grid', 'matches-grid'].forEach((id) => {
+    const el = document.getElementById(id);
+    if (el) skeletonCards(3, el);
   });
 }
 
@@ -99,6 +100,8 @@ function onItemsUpdate(items) {
   renderStats();
   renderCategories();
   renderRecent();
+  renderLostReports();
+  renderFoundReports();
   renderMatches();
   renderSuccessStories();
   renderMyReports();
@@ -230,6 +233,32 @@ function renderRecent() {
   if (items.length === 0) {
     grid.innerHTML = emptyState({ icon: '📭', title: 'No items yet', message: 'Be the first to report a lost or found item.', actionLabel: 'Report Lost Item', actionId: 'empty-report-lost' });
     document.getElementById('empty-report-lost')?.addEventListener('click', () => openReportModal('lost'));
+    return;
+  }
+  grid.innerHTML = items.map((i) => renderItemCard(i, { isOwner: i.reporterUid === currentUser.uid })).join('');
+  bindCardActions(grid);
+  observeReveal(grid);
+}
+
+function renderLostReports() {
+  const grid = document.getElementById('lost-reports-grid');
+  if (!grid) return;
+  const items = allItems.filter((i) => i.type === 'lost' && i.status === 'active');
+  if (items.length === 0) {
+    grid.innerHTML = emptyState({ icon: '📋', title: 'No lost reports yet', message: 'There are currently no active lost items.' });
+    return;
+  }
+  grid.innerHTML = items.map((i) => renderItemCard(i, { isOwner: i.reporterUid === currentUser.uid })).join('');
+  bindCardActions(grid);
+  observeReveal(grid);
+}
+
+function renderFoundReports() {
+  const grid = document.getElementById('found-reports-grid');
+  if (!grid) return;
+  const items = allItems.filter((i) => i.type === 'found' && i.status === 'active');
+  if (items.length === 0) {
+    grid.innerHTML = emptyState({ icon: '🔍', title: 'No found reports yet', message: 'There are currently no active found items.' });
     return;
   }
   grid.innerHTML = items.map((i) => renderItemCard(i, { isOwner: i.reporterUid === currentUser.uid })).join('');
